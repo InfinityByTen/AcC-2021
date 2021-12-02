@@ -2,26 +2,23 @@ use std::fs;
 use text_io::scan;
 
 fn solve_1(route: impl Iterator<Item = (String, isize)>) {
-    let (x, y) = route.fold((0_isize, 0_isize), |(x, y), (ins, v)| {
-        match (ins.as_str(), v) {
-            ("forward", v) => (x + v, y),
-            ("up", v) => (x, y - v),
-            ("down", v) => (x, y + v),
-            (_, _) => unreachable!(),
-        }
+    let (x, y): (isize, isize) = route.fold((0, 0), |(x, y), (ins, v)| match (ins.as_str(), v) {
+        ("forward", v) => (x + v, y),
+        ("up", v) => (x, y - v),
+        ("down", v) => (x, y + v),
+        (_, _) => unreachable!(),
     });
     println!("{:?}", x * y);
 }
 
 fn solve_2(route: impl Iterator<Item = (String, isize)>) {
-    let (x, y, _) = route.fold((0_isize, 0_isize, 0_isize), |(x, y, a), (ins, v)| {
-        match (ins.as_str(), v) {
+    let (x, y, _): (isize, isize, isize) =
+        route.fold((0, 0, 0), |(x, y, a), (ins, v)| match (ins.as_str(), v) {
             ("forward", v) => (x + v, y + (v * a), a),
             ("up", v) => (x, y, a - v),
             ("down", v) => (x, y, a + v),
             (_, _) => unreachable!(),
-        }
-    });
+        });
     println!("{:?}", x * y);
 }
 
