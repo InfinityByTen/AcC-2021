@@ -1,46 +1,39 @@
-// use itertools::Itertools;
 use std::fs;
 
 #[derive(Debug, Clone)]
 struct Board<'a> {
-    rows: Vec<Vec<&'a str>>,
-    cols: Vec<Vec<&'a str>>,
+    rows: Vec<&'a str>,
+    flags: Vec<bool>,
 }
 
 impl Board<'_> {
     fn mark(&mut self, num: &str) {
-        self.rows = self
-            .rows
-            .iter()
-            .map(|r| r.iter().filter(|e| e != &&num).map(|x| x.clone()).collect())
-            .collect();
-        self.cols = self
-            .cols
-            .iter()
-            .map(|r| r.iter().filter(|e| e != &&num).map(|x| x.clone()).collect())
-            .collect();
+        for (data, marks) in self.rows.iter().zip(self.flags.iter_mut()) {
+            if data == &num {
+                *marks = true;
+            }
+        }
     }
 
-    fn winner_winner(&self) -> bool {
-        self.rows.iter().any(|r| r.len() == 0) || self.cols.iter().any(|c| c.len() == 0)
+    fn winner(&self) -> bool {
+        self.flags.chunks(5).any(|row| row.iter().all(|x| *x))
+            || (0..5).any(|col| self.flags.iter().skip(col).step_by(5).all(|x| *x))
     }
 
-    fn chicken_dinner(&self) -> u64 {
-        self.rows
-            .iter()
-            .flatten()
-            .fold(0_u64, |acc, e| acc + e.parse::<u64>().unwrap())
+    fn dinner(&self, num: &str) -> u64 {
+        let zipped = self.rows.iter().zip(self.flags.iter());
+        zipped.fold(0_u64, |acc, (val, mark)| match mark {
+            true => acc + 0,
+            false => acc + val.parse::<u64>().unwrap(),
+        }) * num.parse::<u64>().unwrap()
     }
 }
 
 fn solve_1(nos: Vec<&str>, mut boards: Vec<Board>) {
     for i in 0..nos.len() {
         boards.iter_mut().for_each(|b| b.mark(nos[i]));
-        if let Some(board) = boards.iter().find(|b| b.winner_winner()) {
-            println!(
-                "Winner Winner: {:?}",
-                board.chicken_dinner() * nos[i].parse::<u64>().unwrap()
-            );
+        if let Some(board) = boards.iter().find(|b| b.winner()) {
+            println!("Winner Winner {:?}", board.dinner(nos[i]));
             break;
         }
     }
@@ -49,17 +42,11 @@ fn solve_1(nos: Vec<&str>, mut boards: Vec<Board>) {
 fn solve_2(nos: Vec<&str>, mut boards: Vec<Board>) {
     for i in 0..nos.len() {
         boards.iter_mut().for_each(|b| b.mark(nos[i]));
-        boards = boards
-            .iter()
-            .filter(|b| !b.winner_winner())
-            .map(|x| x.clone())
-            .collect();
-        if boards.len() == 1 {
-            boards[0].mark(nos[i + 1]);
-            println!(
-                "Loser Loser {:?}",
-                boards[0].chicken_dinner() * nos[i + 1].parse::<u64>().unwrap()
-            );
+        if boards.len() == 1 && boards[0].winner() {
+            println!("Loser Loser {:?}", boards[0].dinner(nos[i]));
+            break;
+        } else {
+            boards = boards.iter().cloned().filter(|b| !b.winner()).collect();
         }
     }
 }
@@ -70,23 +57,13 @@ fn main() {
     let nos = input[0].split(',').collect::<Vec<&str>>();
     let boards = input[1..]
         .iter()
-        .map(|r| {
-            let r_major = r
+        .map(|r| Board {
+            rows: r
                 .split('\n')
                 .map(|c| c.split(' ').filter(|e| e != &"").collect::<Vec<&str>>())
-                .collect::<Vec<Vec<&str>>>();
-            Board {
-                rows: r_major.clone(),
-                cols: {
-                    let mut cols = vec![vec![""; r_major[0].len()]; r_major.len()];
-                    for i in 0..r_major.len() {
-                        for j in 0..r_major[0].len() {
-                            cols[i][j] = r_major[j][i];
-                        }
-                    }
-                    cols
-                },
-            }
+                .flatten()
+                .collect::<Vec<&str>>(),
+            flags: vec![false; 25],
         })
         .collect::<Vec<Board>>();
     solve_1(nos.clone(), boards.clone());

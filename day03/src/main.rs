@@ -31,15 +31,15 @@ fn solve_2(nums: &Vec<Vec<char>>) {
         if o2.len() != 1 {
             o2 = o2
                 .iter()
+                .cloned()
                 .filter(|x| x[i] == most_common(&o2, i))
-                .map(|x| x.clone())
                 .collect();
         }
         if co2.len() != 1 {
             co2 = co2
                 .iter()
+                .cloned()
                 .filter(|x| x[i] != most_common(&co2, i))
-                .map(|x| x.clone())
                 .collect();
         }
     }
