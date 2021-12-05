@@ -4,19 +4,15 @@ use std::{cmp::*, fs};
 use text_io::scan;
 
 fn process(points: impl Iterator<Item = (u32, u32)>, diagram: &mut HashMap<(u32, u32), u32>) {
-    points.for_each(|(i, j)| {
-        let count = diagram.entry((i, j)).or_insert(0);
-        *count += 1;
+    points.for_each(|pt| {
+        diagram.entry(pt).and_modify(|e| *e += 1).or_insert(0);
     });
 }
 
-fn solve(points: &Vec<(u32, u32, u32, u32)>, use_diagonal: bool) {
-    let working = points
-        .iter()
-        .filter(|p| (p.0 == p.2 || p.1 == p.3) || use_diagonal)
-        .collect::<Vec<&(u32, u32, u32, u32)>>();
+fn solve(points: impl Iterator<Item = (u32, u32, u32, u32)>, use_diagonal: bool) {
+    let working = points.filter(|p| (p.0 == p.2 || p.1 == p.3) || use_diagonal);
     let mut diagram = HashMap::<(u32, u32), u32>::new();
-    working.iter().for_each(
+    working.for_each(
         |tup| match (tup.0 == tup.2 || tup.1 == tup.3, use_diagonal) {
             (true, _) => process(
                 iproduct![
@@ -39,14 +35,11 @@ fn solve(points: &Vec<(u32, u32, u32, u32)>, use_diagonal: bool) {
 
 fn main() {
     let buf = fs::read_to_string("./input.txt").unwrap();
-    let input = buf
-        .split('\n')
-        .map(|line| {
-            let (x1, y1, x2, y2): (u32, u32, u32, u32);
-            scan!(line.bytes() => "{},{} -> {},{}",x1,y1,x2,y2);
-            (x1, y1, x2, y2)
-        })
-        .collect::<Vec<(u32, u32, u32, u32)>>();
-    solve(&input, false);
-    solve(&input, true);
+    let input = buf.split('\n').map(|line| {
+        let (x1, y1, x2, y2): (u32, u32, u32, u32);
+        scan!(line.bytes() => "{},{} -> {},{}",x1,y1,x2,y2);
+        (x1, y1, x2, y2)
+    });
+    solve(input.clone(), false);
+    solve(input, true);
 }
