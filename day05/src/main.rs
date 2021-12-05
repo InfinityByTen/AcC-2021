@@ -1,54 +1,39 @@
 use itertools::iproduct;
 use std::collections::HashMap;
-use std::{cmp, fs};
+use std::{cmp::*, fs};
 use text_io::scan;
 
-fn solve_1(points: &Vec<(u32, u32, u32, u32)>) {
-    let blaa = points
-        .iter()
-        .filter(|p| p.0 == p.2 || p.1 == p.3)
-        .collect::<Vec<&(u32, u32, u32, u32)>>();
-    let mut diagram = HashMap::<(u32, u32), u32>::new();
-    blaa.iter().for_each(|tup| {
-        for (i, j) in iproduct![
-            cmp::min(tup.0, tup.2)..=cmp::max(tup.0, tup.2),
-            cmp::min(tup.1, tup.3)..=cmp::max(tup.1, tup.3)
-        ] {
-            let count = diagram.entry((i, j)).or_insert(0);
-            *count += 1;
-        }
-    });
-    println!("{:?}", diagram.iter().filter(|(_, val)| val > &&1).count());
-}
-
-fn solve_2(points: &Vec<(u32, u32, u32, u32)>) {
-    let mut diagram = HashMap::<(u32, u32), u32>::new();
-    let mut process = |(i, j)| -> () {
+fn process(points: impl Iterator<Item = (u32, u32)>, diagram: &mut HashMap<(u32, u32), u32>) {
+    points.for_each(|(i, j)| {
         let count = diagram.entry((i, j)).or_insert(0);
         *count += 1;
-    };
-    points
+    });
+}
+
+fn solve(points: &Vec<(u32, u32, u32, u32)>, use_diagonal: bool) {
+    let working = points
         .iter()
-        .for_each(|tup| match tup.0 == tup.2 || tup.1 == tup.3 {
-            true => {
-                for (i, j) in iproduct![
-                    cmp::min(tup.0, tup.2)..=cmp::max(tup.0, tup.2),
-                    cmp::min(tup.1, tup.3)..=cmp::max(tup.1, tup.3)
-                ] {
-                    process((i, j));
-                }
-            }
-            false => match (tup.0 > tup.2, tup.1 > tup.3) {
-                (true, true) => (tup.2..=tup.0).zip(tup.3..=tup.1).for_each(|p| process(p)),
-                (true, false) => (tup.2..=tup.0)
-                    .zip((tup.1..=tup.3).rev())
-                    .for_each(|p| process(p)),
-                (false, true) => ((tup.0..=tup.2).rev())
-                    .zip(tup.3..=tup.1)
-                    .for_each(|p| process(p)),
-                (false, false) => (tup.0..=tup.2).zip(tup.1..=tup.3).for_each(|p| process(p)),
+        .filter(|p| (p.0 == p.2 || p.1 == p.3) || use_diagonal)
+        .collect::<Vec<&(u32, u32, u32, u32)>>();
+    let mut diagram = HashMap::<(u32, u32), u32>::new();
+    working.iter().for_each(
+        |tup| match (tup.0 == tup.2 || tup.1 == tup.3, use_diagonal) {
+            (true, _) => process(
+                iproduct![
+                    min(tup.0, tup.2)..=max(tup.0, tup.2),
+                    min(tup.1, tup.3)..=max(tup.1, tup.3)
+                ],
+                &mut diagram,
+            ),
+            (false, true) => match (tup.0 > tup.2, tup.1 > tup.3) {
+                (true, true) => process((tup.2..=tup.0).zip(tup.3..=tup.1), &mut diagram),
+                (true, false) => process((tup.2..=tup.0).zip((tup.1..=tup.3).rev()), &mut diagram),
+                (false, true) => process(((tup.0..=tup.2).rev()).zip(tup.3..=tup.1), &mut diagram),
+                (false, false) => process((tup.0..=tup.2).zip(tup.1..=tup.3), &mut diagram),
             },
-        });
+            _ => (),
+        },
+    );
     println!("{:?}", diagram.iter().filter(|(_, val)| val > &&1).count());
 }
 
@@ -62,6 +47,6 @@ fn main() {
             (x1, y1, x2, y2)
         })
         .collect::<Vec<(u32, u32, u32, u32)>>();
-    solve_1(&input);
-    solve_2(&input);
+    solve(&input, false);
+    solve(&input, true);
 }
