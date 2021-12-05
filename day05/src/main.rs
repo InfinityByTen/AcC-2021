@@ -5,7 +5,7 @@ use text_io::scan;
 
 fn process(points: impl Iterator<Item = (u32, u32)>, diagram: &mut HashMap<(u32, u32), u32>) {
     points.for_each(|pt| {
-        diagram.entry(pt).and_modify(|e| *e += 1).or_insert(0);
+        diagram.entry(pt).and_modify(|e| *e += 1).or_insert(1);
     });
 }
 
