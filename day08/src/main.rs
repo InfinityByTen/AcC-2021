@@ -14,8 +14,7 @@ fn solve_1(input: &Vec<(&str, &str)>) {
 fn solve_2(input: &Vec<(&str, &str)>) {
     let res = input.iter().fold(0, |acc, (a, b)| {
         let mut nos = [""; 10];
-        let mut sixes = Vec::<&str>::new();
-        let mut fives = Vec::<&str>::new();
+        let (mut fives, mut sixes) = (Vec::<&str>::new(), Vec::<&str>::new());
         a.split(' ').for_each(|pos| match pos.len() {
             2 => nos[1] = pos,
             3 => nos[7] = pos,
@@ -26,10 +25,6 @@ fn solve_2(input: &Vec<(&str, &str)>) {
             _ => unimplemented!(),
         });
         let mut places: [char; 7] = ['.', '.', '.', '.', '.', '.', '.'];
-        places[0] = nos[7]
-            .chars()
-            .filter(|c| !nos[1].contains(&c.to_string()))
-            .collect::<Vec<char>>()[0];
         nos[6] = sixes
             .iter()
             .find(|&&opt| !nos[1].chars().all(|c| opt.contains(c)))
@@ -62,10 +57,6 @@ fn solve_2(input: &Vec<(&str, &str)>) {
             .iter()
             .filter(|opt| opt.chars().all(|c| c == places[4] || nos[6].contains(c)))
             .collect::<Vec<&&str>>()[0];
-        places[6] = nos[8]
-            .chars()
-            .filter(|c| !nos[0].contains(&c.to_string()))
-            .collect::<Vec<char>>()[0];
         nos[3] = fives
             .iter()
             .filter(|opt| opt != &&nos[5] && opt != &&nos[2])
@@ -79,9 +70,8 @@ fn solve_2(input: &Vec<(&str, &str)>) {
                         x.1.chars().sorted().collect::<String>()
                             == num.chars().sorted().collect::<String>()
                     })
+                    .map(|loc| loc.0.to_string())
                     .unwrap()
-                    .0
-                    .to_string()
             })
             .collect::<String>()
             .parse::<usize>()
