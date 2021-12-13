@@ -3,51 +3,33 @@ use std::collections::HashSet;
 use std::fs;
 use text_io::scan;
 
-fn solve_1(input: &(&str, &str)) {
-    let mut points = input
-        .0
-        .split('\n')
-        .map(|coords| {
-            let (i, j): (usize, usize);
-            scan!(coords.bytes()=>"{},{}",i,j);
-            (i, j)
-        })
-        .collect::<Vec<(usize, usize)>>();
-
-    let instructions = input
-        .1
-        .split('\n')
-        .map(|fold| {
-            let (axis, val): (String, usize);
-            scan!(fold.bytes()=>"fold along {}={}", axis,val);
-            (axis, val)
-        })
-        .collect::<Vec<(String, usize)>>();
-
-    let mut process_fold = |ins: (&str, usize)| match ins {
-        ("x", val) => points.iter_mut().for_each(|(i, _)| {
+fn process_fold(dots: &mut Vec<(usize, usize)>, ins: (&str, usize)) {
+    match ins {
+        ("x", val) => dots.iter_mut().for_each(|(i, _)| {
             if *i > val {
                 *i = val - (*i - val)
             }
         }),
-        ("y", val) => points.iter_mut().for_each(|(_, j)| {
+        (_, val) => dots.iter_mut().for_each(|(_, j)| {
             if *j > val {
                 *j = val - (*j - val)
             }
         }),
-        (_, _) => unreachable!(),
-    };
+    }
+}
 
-    // let first = (instructions[0].0.as_ref(), instructions[0].1);
-    // process_fold(first);
-    // println!("{:?}", points.iter().unique().count());
+fn solve_1(mut input: Vec<(usize, usize)>, instructions: &Vec<(String, usize)>) {
+    let first = (instructions[0].0.as_ref(), instructions[0].1);
+    process_fold(&mut input, first);
+    let part1 = input.iter().unique().count();
+    println!("{:?}", part1);
+}
 
+fn solve_2(mut input: Vec<(usize, usize)>, instructions: &Vec<(String, usize)>) {
     instructions
         .iter()
-        .for_each(|ins| process_fold((ins.0.as_ref(), ins.1)));
-    // println!("{:?}", points);
-
-    let code = points.iter().unique().collect::<HashSet<&(usize, usize)>>();
+        .for_each(|ins| process_fold(&mut input, (ins.0.as_ref(), ins.1)));
+    let code = input.iter().unique().collect::<HashSet<&(usize, usize)>>();
 
     let (a, b) = (
         code.iter().max_by_key(|(_, j)| j).unwrap().1,
@@ -69,5 +51,27 @@ fn solve_1(input: &(&str, &str)) {
 fn main() {
     let buf = fs::read_to_string("./input.txt").unwrap();
     let input = buf.split("\n\n").collect_tuple::<(&str, &str)>().unwrap();
-    solve_1(&input);
+
+    let points = input
+        .0
+        .split('\n')
+        .map(|coords| {
+            let (i, j): (usize, usize);
+            scan!(coords.bytes()=>"{},{}",i,j);
+            (i, j)
+        })
+        .collect::<Vec<(usize, usize)>>();
+
+    let instructions = input
+        .1
+        .split('\n')
+        .map(|fold| {
+            let (axis, val): (String, usize);
+            scan!(fold.bytes()=>"fold along {}={}", axis,val);
+            (axis, val)
+        })
+        .collect::<Vec<(String, usize)>>();
+
+    solve_1(points.clone(), &instructions);
+    solve_2(points, &instructions);
 }
