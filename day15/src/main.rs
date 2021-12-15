@@ -2,45 +2,11 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashSet};
 use std::fs;
 
-/*
-**********************************
-Initial approach of doing a sweep.
-**********************************
-This works for the test, but not the actual input. Most likely there is an upwards or leftward
-traversal that I should account for in the main input. It's easy to construct an example
-that forces the route around a bunch of 9's using all 1's.
-
-Funnily, this gives an "off by one" error to the answer. Need to then find the bug in it.
-Shouldn't be a coincidence. Maybe then there's no upwards or leftwards traversal.
-*/
-#[allow(dead_code)]
-fn solve_attempt_one(input: &Vec<Vec<u32>>, limit: usize) {
-    let mut costs = vec![vec![(u32::MAX, (0, 0)); limit + 1]; limit + 1];
-    costs[0][0].0 = 0;
-    (0..=limit).for_each(|row| {
-        (0..=limit).for_each(|col| {
-            if row < limit {
-                let pot_cost_1 = costs[row][col].0 + input[row + 1][col];
-                if costs[row + 1][col].0 > pot_cost_1 {
-                    costs[row + 1][col] = (pot_cost_1, (row, col));
-                }
-            }
-            if col < limit {
-                let pot_cost_2 = costs[row][col].0 + input[row][col + 1];
-                if costs[row][col + 1].0 > pot_cost_2 {
-                    costs[row][col + 1] = (pot_cost_2, (row, col));
-                }
-            }
-        })
-    });
-    costs.iter().for_each(|row| println!("{:?}", row));
-    println!("{:?}", costs[limit][limit]);
-}
-
 #[derive(Debug, Eq, PartialEq)]
 struct Vertex {
     cost: u32,
     position: (usize, usize),
+    from_v: (usize, usize),
 }
 
 impl Ord for Vertex {
@@ -65,6 +31,7 @@ fn run_dijkstra(input: &Vec<Vec<u32>>, is_5x: bool) {
     queue.push(Vertex {
         cost: 0,
         position: (0, 0),
+        from_v: (0, 0),
     });
 
     let mut settled = HashSet::new();
@@ -94,10 +61,24 @@ fn run_dijkstra(input: &Vec<Vec<u32>>, is_5x: bool) {
         false => input[edge.0][edge.1],
     };
 
+    /* Code in comments for printing route.
+     */
+    // let mut route = vec![vec![(0, 0); graph_limit + 1]; graph_limit + 1];
+    // let mut print_route = vec![vec![' '; graph_limit + 1]; graph_limit + 1];
     while let Some(vertex) = queue.pop() {
         if !settled.contains(&vertex.position) {
+            // route[vertex.position.0][vertex.position.1] = vertex.from_v;
             if vertex.position == (graph_limit, graph_limit) {
                 println!("Total Cost {:?}", vertex.cost);
+                // let mut pos = (graph_limit, graph_limit);
+                // while pos != (0, 0) {
+                //     print_route[pos.0][pos.1] = '█';
+                //     pos = route[pos.0][pos.1];
+                // }
+                // print_route
+                //     .iter()
+                //     .enumerate()
+                //     .for_each(|row| println!("{:?} {:?}", row.0, row.1.iter().collect::<String>()));
                 break;
             }
             settled.insert(vertex.position.clone());
@@ -105,6 +86,7 @@ fn run_dijkstra(input: &Vec<Vec<u32>>, is_5x: bool) {
                 queue.push(Vertex {
                     cost: vertex.cost + get_edge_cost(*edge, is_5x),
                     position: *edge,
+                    from_v: vertex.position,
                 });
             })
         }
