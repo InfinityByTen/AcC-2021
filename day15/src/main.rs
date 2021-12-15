@@ -2,24 +2,6 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashSet};
 use std::fs;
 
-#[derive(Debug, Eq, PartialEq)]
-struct Vertex {
-    cost: u32,
-    position: (usize, usize),
-}
-
-impl Ord for Vertex {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.cost.cmp(&self.cost)
-    }
-}
-
-impl PartialOrd for Vertex {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 /*
 **********************************
 Initial approach of doing a sweep.
@@ -55,7 +37,30 @@ fn solve_attempt_one(input: &Vec<Vec<u32>>, limit: usize) {
     println!("{:?}", costs[limit][limit]);
 }
 
-fn solve_1(input: &Vec<Vec<u32>>, limit: usize) {
+#[derive(Debug, Eq, PartialEq)]
+struct Vertex {
+    cost: u32,
+    position: (usize, usize),
+}
+
+impl Ord for Vertex {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost)
+    }
+}
+
+impl PartialOrd for Vertex {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn run_dijkstra(input: &Vec<Vec<u32>>, is_5x: bool) {
+    let limit = input.len() - 1;
+    let graph_limit = match is_5x {
+        true => 5 * input.len() - 1,
+        false => limit,
+    };
     let mut queue = BinaryHeap::new();
     queue.push(Vertex {
         cost: 0,
@@ -63,89 +68,49 @@ fn solve_1(input: &Vec<Vec<u32>>, limit: usize) {
     });
 
     let mut settled = HashSet::new();
+    let get_edges = |(row, col)| -> _ {
+        vec![
+            (row + 1, col),
+            (row - 1, col),
+            (row, col + 1),
+            (row, col - 1),
+        ]
+        .iter()
+        .cloned()
+        .filter(|(i, j)| (0..=graph_limit).contains(i) && (0..=graph_limit).contains(j))
+        .collect::<Vec<(usize, usize)>>()
+    };
 
-    let get_edges = |(row, col)| {
-        let mut edges = Vec::new();
-        if row > 1 {
-            edges.push((row - 1, col));
+    let get_edge_cost = |edge: (usize, usize), is_5x: bool| match is_5x {
+        true => {
+            let mapped_edge = (edge.0 % (limit + 1), edge.1 % (limit + 1));
+            let overflow = (edge.0 / (limit + 1)) + (edge.1 / (limit + 1));
+            let mut val = input[mapped_edge.0][mapped_edge.1] + (overflow as u32);
+            if val > 9 {
+                val -= 9;
+            }
+            val
         }
-        if row < limit {
-            edges.push((row + 1, col));
-        }
-        if col > 1 {
-            edges.push((row, col - 1));
-        }
-        if col < limit {
-            edges.push((row, col + 1));
-        }
-        edges
+        false => input[edge.0][edge.1],
     };
 
     while let Some(vertex) = queue.pop() {
         if !settled.contains(&vertex.position) {
-            if vertex.position == (limit, limit) {
+            if vertex.position == (graph_limit, graph_limit) {
                 println!("Total Cost {:?}", vertex.cost);
                 break;
             }
             settled.insert(vertex.position.clone());
-            for edge in get_edges(vertex.position) {
+            get_edges(vertex.position).iter().for_each(|edge| {
                 queue.push(Vertex {
-                    cost: vertex.cost + input[edge.0][edge.1],
-                    position: edge,
+                    cost: vertex.cost + get_edge_cost(*edge, is_5x),
+                    position: *edge,
                 });
-            }
+            })
         }
     }
 }
 
-fn solve_2(input: &Vec<Vec<u32>>, limit: usize) {
-    let mut queue = BinaryHeap::new();
-    queue.push(Vertex {
-        cost: 0,
-        position: (0, 0),
-    });
-
-    let mut settled = HashSet::new();
-
-    let get_edges = |(row, col)| {
-        let mut edges = Vec::new();
-        if row > 1 {
-            edges.push((row - 1, col));
-        }
-        if row < 5 * limit + 4 {
-            edges.push((row + 1, col));
-        }
-        if col > 1 {
-            edges.push((row, col - 1));
-        }
-        if col < 5 * limit + 4 {
-            edges.push((row, col + 1));
-        }
-        edges
-    };
-
-    while let Some(vertex) = queue.pop() {
-        if !settled.contains(&vertex.position) {
-            if vertex.position == (limit * 5 + 4, limit * 5 + 4) {
-                println!("Total Cost {:?}", vertex.cost);
-                break;
-            }
-            settled.insert(vertex.position.clone());
-            for edge in get_edges(vertex.position) {
-                let mapped_edge = (edge.0 % (limit + 1), edge.1 % (limit + 1));
-                let overflow = (edge.0 / (limit + 1)) + (edge.1 / (limit + 1));
-                let mut val = input[mapped_edge.0][mapped_edge.1] + (overflow as u32);
-                if val > 9 {
-                    val -= 9;
-                }
-                queue.push(Vertex {
-                    cost: vertex.cost + val,
-                    position: edge,
-                });
-            }
-        }
-    }
-}
 fn main() {
     let buf = fs::read_to_string("./input.txt").unwrap();
     let input = buf
@@ -156,6 +121,6 @@ fn main() {
                 .collect::<Vec<u32>>()
         })
         .collect::<Vec<Vec<u32>>>();
-    solve_1(&input, 99);
-    solve_2(&input, 99);
+    run_dijkstra(&input, false);
+    run_dijkstra(&input, true);
 }
