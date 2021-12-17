@@ -26,7 +26,7 @@ fn solve_1((x1, x2, y1, y2): (i32, i32, i32, i32)) {
      * abs(y2) is a starting guess for y to minimize iterations
      */
     let (start_x, mut start_y) = (
-        (((1 + 8 * x1) as f32).sqrt().ceil() / 2_f32) as i32,
+        ((1_f32 + ((1 + 8 * x1) as f32).sqrt().ceil()) / 2_f32) as i32,
         y2.abs(),
     );
     // limit to abs(y1) attempts, since some steps can fall in target despite previous y vel overshot
