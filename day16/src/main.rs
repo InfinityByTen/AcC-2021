@@ -3,12 +3,12 @@ use to_binary::BinaryString;
 
 fn parse_literal(cursor: &mut dyn Iterator<Item = &char>) -> (usize, usize) {
     let mut count = 6;
-    let res: usize;
+    let mut res: usize;
     loop {
         let val = (0..5).map(|_| cursor.next().unwrap()).collect::<String>();
         count += 5;
+        res = usize::from_str_radix(&val, 2).unwrap();
         if &val[0..1] == "0" {
-            res = usize::from_str_radix(&val, 2).unwrap();
             break;
         }
     }
@@ -17,17 +17,14 @@ fn parse_literal(cursor: &mut dyn Iterator<Item = &char>) -> (usize, usize) {
 
 fn operate<'a>(operands: &Vec<usize>, id: &str) -> usize {
     let id_val = usize::from_str_radix(id, 2).unwrap();
-
     match id_val {
         0 => operands.iter().sum(),
         1 => operands.iter().product(),
-        2 => operands.iter().cloned().min().unwrap(),
-        3 => operands.iter().cloned().max().unwrap(),
-        // 4=> ,
-        5 => ((operands[0] > operands[1]) as usize),
-        6 => ((operands[0] < operands[1]) as usize),
-        7 => ((operands[0] == operands[1]) as usize),
-        _ => unreachable!(),
+        2 => *operands.iter().min().unwrap(),
+        3 => *operands.iter().max().unwrap(),
+        5 => (operands[0] > operands[1]) as usize,
+        6 => (operands[0] < operands[1]) as usize,
+        _ => (operands[0] == operands[1]) as usize,
     }
 }
 
@@ -49,9 +46,8 @@ fn parse_packet(
     }
     match type_id.as_str() {
         "100" => {
-            // println!("Literal");
             let res = parse_literal(cursor);
-            // println!("{:?}", res.0);
+            // println!("Literal {:?}", res.0);
             return (ver, res.0, res.1);
         }
         op => {
@@ -60,7 +56,6 @@ fn parse_packet(
             if start_tracking_used {
                 used += 1;
             }
-
             match length_id {
                 '0' => {
                     let length = (0..15).map(|_| cursor.next().unwrap()).collect::<String>();
@@ -81,9 +76,12 @@ fn parse_packet(
                         // println!("Used before after one Operator {:?}", used);
                         operands.push(res.1);
                     }
-                    // println!("{:?}", (&operands, usize::from_str_radix(op, 2).unwrap()));
                     out = operate(&operands, op);
-                    // println!("{:?}", out);
+                    // println!(
+                    //     "out {:?} = {:?}",
+                    //     out,
+                    //     (&operands, usize::from_str_radix(op, 2).unwrap())
+                    // );
                 }
                 _ => {
                     let count = (0..11).map(|_| cursor.next().unwrap()).collect::<String>();
@@ -105,13 +103,18 @@ fn parse_packet(
                         })
                         .collect::<Vec<usize>>();
                     // println!("Used before after one Operator {:?}", used);
-                    // println!("{:?}", (&operands, usize::from_str_radix(op, 2).unwrap()));
                     out = operate(&operands, op);
+                    // println!(
+                    //     "out {:?} = {:?}",
+                    //     out,
+                    //     (&operands, usize::from_str_radix(op, 2).unwrap())
+                    // );
                 }
             }
         }
     }
     // println!("Final {:?}", ver);
+    // println!("Going up \n");
     (ver, out, used)
 }
 
