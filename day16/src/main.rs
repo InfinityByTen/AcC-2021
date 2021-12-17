@@ -3,16 +3,17 @@ use to_binary::BinaryString;
 
 fn parse_literal(cursor: &mut dyn Iterator<Item = &char>) -> (usize, usize) {
     let mut count = 6;
-    let mut res: usize;
+    let mut bits = String::new();
     loop {
         let val = (0..5).map(|_| cursor.next().unwrap()).collect::<String>();
         count += 5;
-        res = usize::from_str_radix(&val, 2).unwrap();
+        bits = bits + &val[1..];
+        // println!("{:?}", bits);
         if &val[0..1] == "0" {
             break;
         }
     }
-    (res, count)
+    (usize::from_str_radix(&bits, 2).unwrap(), count)
 }
 
 fn operate<'a>(operands: &Vec<usize>, id: &str) -> usize {
