@@ -1,4 +1,4 @@
-use itertools::iproduct;
+use itertools::Itertools;
 use std::cmp;
 use std::fs;
 
@@ -19,24 +19,19 @@ impl Pair {
     fn absorb(&mut self, from_left: bool, val: u32) {
         match self {
             Pair::Leaf(prev) => *prev += val,
-            Pair::Branch { left: l, right: r } => {
-                if from_left {
-                    l.absorb(from_left, val);
-                } else {
-                    r.absorb(from_left, val)
-                }
-            }
+            Pair::Branch { left: l, right: r } => match from_left {
+                true => l.absorb(from_left, val),
+                false => r.absorb(from_left, val),
+            },
         }
     }
 
     fn reduce(&mut self, depth: u32) -> Option<(u32, u32)> {
-        // println!("{:?}", (&self, depth));
-        if let Pair::Leaf(_val) = self {
+        if let Pair::Leaf(_) = self {
             // println!("Do nothing for {:?}", val);
             None
         } else if let Pair::Branch { left: l, right: r } = self {
             if depth == 4 {
-                // println!("Exploding {:?}", self.clone());
                 let a = match **l {
                     Pair::Leaf(val) => val,
                     _ => unreachable!(),
@@ -54,7 +49,7 @@ impl Pair {
                     return Some((a, 0));
                 }
                 if let Some((a, b)) = r.reduce(depth + 1) {
-                    // println!("Right explodes giving {:?} to absorb in {:?}", (a, b), r);
+                    // println!("Right explodes giving {:?} to absorb in {:?}", (a, b), l);
                     l.absorb(false, a);
                     return Some((0, b));
                 } else {
@@ -113,44 +108,38 @@ fn get_pair(input: &str) -> Pair {
     }
 }
 
-#[allow(dead_code)]
-fn add_pair(a: &Pair, b: &Pair) -> Pair {
-    Pair::Branch {
-        left: Box::new(a.clone()),
-        right: Box::new(b.clone()),
-    }
-}
-
 fn reduced_addition(x: &Pair, y: &Pair) -> Pair {
-    let mut res = add_pair(&x, &y);
+    let mut res = Pair::Branch {
+        left: Box::new(x.clone()),
+        right: Box::new(y.clone()),
+    };
     while res.reduce(0).is_some() || res.split().is_some() {
         // println!("Continuing with {:?}", res);
     }
     res
 }
 
-fn solve_1(input: &Vec<&str>) {
-    let res = input.iter().skip(1).fold(get_pair(input[0]), |acc, nxt| {
-        reduced_addition(&acc, &get_pair(&nxt))
-    });
+fn solve_1(input: &Vec<Pair>) {
+    let res = input
+        .iter()
+        .skip(1)
+        .fold(input[0].clone(), |acc, nxt| reduced_addition(&acc, &nxt));
     println!("{:?}", res.magnitude());
 }
 
-fn solve_2(input: &Vec<&str>) {
+fn solve_2(input: &Vec<Pair>) {
     let limit = input.len() - 1;
-    let res = iproduct![0..limit, 0..limit]
-        .filter(|(a, b)| a != b)
-        .fold(0, |acc, (a, b)| {
-            let a_p_b = reduced_addition(&get_pair(input[a]), &get_pair(input[b])).magnitude();
-            let b_p_a = reduced_addition(&get_pair(input[b]), &get_pair(input[a])).magnitude();
-            cmp::max(acc, a_p_b.max(b_p_a))
-        });
+    let res = (0..limit).permutations(2).fold(0, |acc, e| {
+        let a_p_b = reduced_addition(&input[e[0]], &input[e[1]]).magnitude();
+        let b_p_a = reduced_addition(&input[e[0]], &input[e[1]]).magnitude();
+        cmp::max(acc, a_p_b.max(b_p_a))
+    });
     println!("{:?}", res);
 }
 
 fn main() {
     let buf = fs::read_to_string("./input.txt").unwrap();
-    let input = buf.split('\n').collect::<Vec<&str>>();
+    let input = buf.split('\n').map(|x| get_pair(x)).collect::<Vec<Pair>>();
     solve_1(&input);
     solve_2(&input);
 }
